@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOCTIS Map — Toronto</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="map-page">
+  <div id="map"></div>
+
+  <header class="map-topbar">
+    <a class="map-logo" href="index.html">NOCTIS <span>by Shun</span></a>
+    <nav>
+      <button data-filter="all">ALL</button>
+      <button data-filter="commercial">COMMERCIAL</button>
+      <button data-filter="residential">RESIDENTIAL</button>
+      <button data-filter="favorite">FAVORITES</button>
+    </nav>
+  </header>
+
+  <section class="map-toolbox">
+    <h2>Photo Anchor System</h2>
+    <p>Click “Add Photo Point”, then click on the Toronto area map. You can upload a photo, set the time, write notes, save it, and open a larger analysis window.</p>
+    <button id="addPointBtn">+ Add Photo Point</button>
+    <button id="clearLocalBtn">Reset Local Points</button>
+    <div class="legend">
+      <span><i class="dot small"></i> Default anchor</span>
+      <span><i class="dot large"></i> Strong light area</span>
+      <span><i class="dot fav"></i> Saved point</span>
+    </div>
+  </section>
+
+  <section class="archive-panel" id="archive">
+    <h2>Archive</h2>
+    <div id="archiveList"></div>
+  </section>
+
+  <div class="modal hidden" id="photoModal">
+    <div class="modal-backdrop" id="closeBackdrop"></div>
+    <article class="modal-card">
+      <button class="modal-close" id="closeModal">×</button>
+      <div class="modal-image-wrap">
+        <img id="modalImage" alt="night photography" />
+        <div class="analysis-overlay" id="analysisOverlay">
+          <span class="scan-box box-a"></span>
+          <span class="scan-box box-b"></span>
+          <span class="scan-box box-c"></span>
+        </div>
+      </div>
+      <div class="modal-info">
+        <div class="modal-kicker">URBAN LIGHT SAMPLE</div>
+        <textarea id="modalTitle" class="modal-title-input" spellcheck="false"></textarea>
+        <div class="meta-grid">
+          <div><b>LOCATION</b><span id="modalLocation"></span></div>
+          <div><b>TIME</b><input id="modalTimeInput" class="meta-input" type="text" placeholder="e.g. 10:42 PM" /></div>
+          <div><b>AREA</b><span id="modalArea"></span></div>
+          <div><b>CONDITION</b><span id="modalCondition"></span></div>
+        </div>
+        <label>Observation</label>
+        <textarea id="modalNote"></textarea>
+        <label>Light Analysis</label>
+        <textarea id="modalAnalysis"></textarea>
+        <label>Upload or Replace Photo</label>
+        <input id="imageInput" type="file" accept="image/*" />
+        <div class="modal-actions">
+          <button id="favoriteBtn">☆ Save</button>
+          <button id="saveBtn">Save Edits</button>
+          <button id="deleteBtn" class="danger-btn">Delete Point</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+</body>
+</html>
