@@ -1,4 +1,4 @@
-NOCTIS v3 - by Shun
+NOCTIS v3 - noctis-lake
 
 运行方式：
 1. 双击 index.html 打开首页。

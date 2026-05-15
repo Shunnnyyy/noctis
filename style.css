@@ -104,6 +104,7 @@ select {
 .map-topbar {
   position: fixed;
   z-index: 10;
+  gap: 18px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -158,6 +159,8 @@ select {
 .home-nav,
 .map-topbar nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   padding: 6px;
   border: 1px solid var(--line);
@@ -394,6 +397,11 @@ select {
 .leaflet-control-attribution {
   background: rgba(0, 0, 0, 0.5) !important;
   color: #aaa !important;
+}
+
+.leaflet-top.leaflet-left {
+  top: 112px;
+  left: 22px;
 }
 
 .map-topbar {
@@ -862,6 +870,7 @@ select {
     left: 16px;
     right: 16px;
     top: 16px;
+    align-items: flex-start;
   }
 
   .home-nav,
@@ -896,8 +905,13 @@ select {
   }
 
   .map-topbar nav {
-    max-width: calc(100vw - 152px);
+    max-width: calc(100vw - 188px);
     overflow-x: auto;
+  }
+
+  .leaflet-top.leaflet-left {
+    top: 84px;
+    left: 16px;
   }
 
   .map-toolbox {
@@ -938,7 +952,16 @@ select {
   }
 
   .map-topbar nav {
-    max-width: calc(100vw - 118px);
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: 64px;
+    max-width: none;
+    justify-content: flex-start;
+  }
+
+  .leaflet-top.leaflet-left {
+    top: 120px;
   }
 
   .map-topbar button {
