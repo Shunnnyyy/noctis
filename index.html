@@ -3,46 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NOCTIS — Urban Light Map</title>
+  <meta name="description" content="NOCTIS is an interactive archive for mapping night light conditions across Toronto." />
+  <title>NOCTIS - Urban Light Archive</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="home-page">
-  <canvas id="homeCanvas"></canvas>
-  <div class="grid-layer"></div>
-  <div class="noise-layer"></div>
-  <div class="scan-line"></div>
+  <canvas id="homeCanvas" aria-hidden="true"></canvas>
+  <div class="grid-layer" aria-hidden="true"></div>
+  <div class="noise-layer" aria-hidden="true"></div>
+  <div class="scan-line" aria-hidden="true"></div>
 
   <header class="home-header">
-    <div class="brand-block">
-      <div class="brand-cn">NOCTIS</div>
-      <div class="brand-sub">URBAN LIGHT ARCHIVE</div>
-      <div class="signature">by Shun</div>
-    </div>
-    <nav class="home-nav">
-      <a href="map.html">MAP</a>
-      <a href="map.html#archive">ARCHIVE</a>
-      <a href="map.html#analysis">ANALYSIS</a>
-      <a href="map.html#favorites">FAVORITES</a>
+    <a class="brand-block" href="index.html" aria-label="NOCTIS home">
+      <span class="brand-mark">NOCTIS</span>
+      <span class="brand-sub">URBAN LIGHT ARCHIVE</span>
+      <span class="signature">by Shun</span>
+    </a>
+    <nav class="home-nav" aria-label="Primary navigation">
+      <a href="map.html">Map</a>
+      <a href="map.html#archive">Archive</a>
+      <a href="map.html#analysis">Analysis</a>
+      <a href="map.html#favorites">Favorites</a>
     </nav>
   </header>
 
   <main class="home-copy">
-    <div class="vertical-note">TORONTO AREA LIGHT SYSTEM</div>
-    <h1>URBAN<br>LIGHT<br>MAP</h1>
-    <p class="intro-main">A black-and-white map project about night light across the Toronto area.</p>
-    <p class="intro-small">I use my own night photography to record where the city feels too bright, too dark, or visually interesting. Each photo becomes a point on the map, with simple notes about light, place, and energy.</p>
+    <p class="system-label">Toronto area light system</p>
+    <h1>Urban<br />Light<br />Archive</h1>
+    <p class="intro-main">A black-and-white field instrument for recording how the city behaves after dark.</p>
+    <p class="intro-small">Each photo becomes a map anchor with location, time, light intensity, condition notes, and a small visual analysis layer. Use it to compare commercial glare, residential softness, reflection zones, and places worth revisiting.</p>
+    <div class="home-actions" aria-label="Start actions">
+      <a class="enter-btn" href="map.html">Enter Map</a>
+      <a class="ghost-btn" href="map.html#archive">View Archive</a>
+    </div>
   </main>
 
-  <a class="enter-btn" href="map.html">ENTER SYSTEM</a>
-
-  <aside class="home-data-panel">
-    <div><b>MODE</b> / GENERATIVE MAP</div>
-    <div><b>INPUT</b> / NIGHT PHOTOGRAPHY</div>
-    <div><b>DATA</b> / LIGHT INTENSITY</div>
-    <div><b>ZONE</b> / COMMERCIAL + RESIDENTIAL</div>
-    <br />
-    <div>MOVE CURSOR TO DISTORT THE CENTER FIELD</div>
+  <aside class="home-data-panel" aria-label="Project status">
+    <div class="panel-heading">Live Field Index</div>
+    <dl>
+      <div><dt>Mode</dt><dd>Generative Map</dd></div>
+      <div><dt>Input</dt><dd>Night Photography</dd></div>
+      <div><dt>Dataset</dt><dd>Local Browser Archive</dd></div>
+      <div><dt>Zone</dt><dd>Commercial + Residential</dd></div>
+    </dl>
+    <p>Move the cursor to bend the center field.</p>
   </aside>
+
+  <section class="home-metrics" aria-label="Archive metrics">
+    <div><span>04</span><b>Starter Anchors</b></div>
+    <div><span>02</span><b>Urban Zones</b></div>
+    <div><span>01</span><b>Interactive Map</b></div>
+  </section>
 
   <script src="script.js"></script>
 </body>

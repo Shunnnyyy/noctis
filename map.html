@@ -3,71 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NOCTIS Map — Toronto</title>
+  <meta name="description" content="Explore and edit the NOCTIS Toronto night light photo map." />
+  <title>NOCTIS Map - Toronto</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="map-page">
-  <div id="map"></div>
+  <div id="map" aria-label="Toronto night light map"></div>
 
   <header class="map-topbar">
     <a class="map-logo" href="index.html">NOCTIS <span>by Shun</span></a>
-    <nav>
-      <button data-filter="all">ALL</button>
-      <button data-filter="commercial">COMMERCIAL</button>
-      <button data-filter="residential">RESIDENTIAL</button>
-      <button data-filter="favorite">FAVORITES</button>
+    <nav aria-label="Map filters">
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="commercial">Commercial</button>
+      <button data-filter="residential">Residential</button>
+      <button data-filter="favorite">Favorites</button>
     </nav>
   </header>
 
-  <section class="map-toolbox">
-    <h2>Photo Anchor System</h2>
-    <p>Click “Add Photo Point”, then click on the Toronto area map. You can upload a photo, set the time, write notes, save it, and open a larger analysis window.</p>
-    <button id="addPointBtn">+ Add Photo Point</button>
-    <button id="clearLocalBtn">Reset Local Points</button>
+  <section class="map-toolbox" aria-label="Map controls">
+    <div class="toolbox-title">
+      <p>Photo Anchor System</p>
+      <span id="pointCount">0 points</span>
+    </div>
+    <label class="search-wrap" for="searchInput">
+      <span>Search archive</span>
+      <input id="searchInput" type="search" placeholder="street, condition, note..." />
+    </label>
+    <div class="tool-grid">
+      <button id="addPointBtn">Add Point</button>
+      <button id="focusBtn">Focus Toronto</button>
+      <button id="exportBtn">Export JSON</button>
+      <button id="clearLocalBtn">Reset Local</button>
+    </div>
     <div class="legend">
-      <span><i class="dot small"></i> Default anchor</span>
-      <span><i class="dot large"></i> Strong light area</span>
+      <span><i class="dot small"></i> Low intensity</span>
+      <span><i class="dot medium"></i> Medium intensity</span>
+      <span><i class="dot large"></i> Strong light</span>
       <span><i class="dot fav"></i> Saved point</span>
     </div>
   </section>
 
-  <section class="archive-panel" id="archive">
-    <h2>Archive</h2>
+  <section class="archive-panel" id="archive" aria-label="Archive">
+    <div class="archive-head">
+      <h2>Archive</h2>
+      <span id="filterLabel">All</span>
+    </div>
     <div id="archiveList"></div>
   </section>
 
-  <div class="modal hidden" id="photoModal">
+  <section class="insight-panel" id="analysis" aria-label="Light analysis summary">
+    <span>Average Intensity</span>
+    <strong id="averageIntensity">0%</strong>
+    <p id="analysisSummary">No points selected.</p>
+  </section>
+
+  <div class="modal hidden" id="photoModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-backdrop" id="closeBackdrop"></div>
     <article class="modal-card">
-      <button class="modal-close" id="closeModal">×</button>
+      <button class="modal-close" id="closeModal" aria-label="Close">×</button>
       <div class="modal-image-wrap">
-        <img id="modalImage" alt="night photography" />
-        <div class="analysis-overlay" id="analysisOverlay">
+        <img id="modalImage" alt="Night photography sample" />
+        <div class="analysis-overlay" id="analysisOverlay" aria-hidden="true">
           <span class="scan-box box-a"></span>
           <span class="scan-box box-b"></span>
           <span class="scan-box box-c"></span>
         </div>
       </div>
       <div class="modal-info">
-        <div class="modal-kicker">URBAN LIGHT SAMPLE</div>
+        <div class="modal-kicker">Urban Light Sample</div>
         <textarea id="modalTitle" class="modal-title-input" spellcheck="false"></textarea>
         <div class="meta-grid">
-          <div><b>LOCATION</b><span id="modalLocation"></span></div>
-          <div><b>TIME</b><input id="modalTimeInput" class="meta-input" type="text" placeholder="e.g. 10:42 PM" /></div>
-          <div><b>AREA</b><span id="modalArea"></span></div>
-          <div><b>CONDITION</b><span id="modalCondition"></span></div>
+          <div><b>Location</b><span id="modalLocation"></span></div>
+          <div><b>Time</b><input id="modalTimeInput" class="meta-input" type="text" placeholder="e.g. 10:42 PM" /></div>
+          <div>
+            <b>Area</b>
+            <select id="modalAreaInput" class="meta-input">
+              <option value="commercial">Commercial</option>
+              <option value="residential">Residential</option>
+            </select>
+          </div>
+          <div>
+            <b>Condition</b>
+            <select id="modalConditionInput" class="meta-input">
+              <option>Over-lit</option>
+              <option>Mixed</option>
+              <option>Balanced</option>
+              <option>Dim</option>
+              <option>Unknown</option>
+            </select>
+          </div>
         </div>
-        <label>Observation</label>
+        <label for="modalIntensity">Light Intensity <span id="intensityValue">60%</span></label>
+        <input id="modalIntensity" class="range-input" type="range" min="10" max="100" step="5" />
+        <label for="modalNote">Observation</label>
         <textarea id="modalNote"></textarea>
-        <label>Light Analysis</label>
+        <label for="modalAnalysis">Light Analysis</label>
         <textarea id="modalAnalysis"></textarea>
-        <label>Upload or Replace Photo</label>
+        <label for="imageInput">Upload or Replace Photo</label>
         <input id="imageInput" type="file" accept="image/*" />
         <div class="modal-actions">
-          <button id="favoriteBtn">☆ Save</button>
+          <button id="favoriteBtn">Save</button>
           <button id="saveBtn">Save Edits</button>
-          <button id="deleteBtn" class="danger-btn">Delete Point</button>
+          <button id="deleteBtn" class="danger-btn">Delete</button>
         </div>
       </div>
     </article>
