@@ -58,6 +58,9 @@ const defaultPoints = [
 ];
 
 const storageKey = 'noctis_points';
+const supabaseUrl = 'https://szmcjrgtecwzxvsszeib.supabase.co';
+const supabaseKey = 'sb_publishable_glEsWFXGRqG1c4OU51YlyA_uh7_fojn';
+const tableColumns = 'id,title,lat,lng,area,condition,time,intensity,favorite,img,note,analysis,created_at,updated_at';
 const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
 let points = (saved || defaultPoints).map(normalizePoint);
 let currentId = null;
@@ -107,6 +110,114 @@ function escapeHtml(value) {
 
 function saveLocal() {
   localStorage.setItem(storageKey, JSON.stringify(points));
+}
+
+function setSyncStatus(message) {
+  const syncStatus = document.getElementById('syncStatus');
+  if (syncStatus) syncStatus.textContent = message;
+}
+
+function pointForDatabase(point) {
+  return {
+    id: point.id,
+    title: point.title || 'Untitled Light Sample',
+    lat: point.lat,
+    lng: point.lng,
+    area: point.area || 'commercial',
+    condition: point.condition || 'Unknown',
+    time: point.time || '',
+    intensity: Number(point.intensity) || 55,
+    favorite: Boolean(point.favorite),
+    img: point.img || '',
+    note: point.note || '',
+    analysis: point.analysis || ''
+  };
+}
+
+async function supabaseRequest(path, options = {}) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Supabase request failed: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function loadSupabasePoints() {
+  setSyncStatus('Syncing');
+  try {
+    const remotePoints = await supabaseRequest(`light_points?select=${tableColumns}&order=created_at.asc`);
+    points = remotePoints.map(normalizePoint);
+
+    if (saved && saved.length) {
+      await syncLocalDrafts(saved.map(normalizePoint));
+    }
+
+    saveLocal();
+    renderMarkers();
+    setSyncStatus('Online');
+  } catch (error) {
+    console.warn('NOCTIS Supabase sync failed. Using local cache.', error);
+    setSyncStatus('Local');
+    renderMarkers();
+  }
+}
+
+async function syncLocalDrafts(localPoints) {
+  const remoteIds = new Set(points.map(point => point.id));
+  const drafts = localPoints.filter(point => point.id.startsWith('local_') || !remoteIds.has(point.id));
+  if (!drafts.length) return;
+
+  const synced = await upsertSupabasePoints(drafts);
+  const merged = new Map(points.map(point => [point.id, point]));
+  synced.forEach(point => merged.set(point.id, normalizePoint(point)));
+  points = Array.from(merged.values());
+}
+
+async function upsertSupabasePoints(pointsToSave) {
+  return supabaseRequest('light_points?on_conflict=id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(pointsToSave.map(pointForDatabase))
+  });
+}
+
+async function savePoint(point) {
+  saveLocal();
+  setSyncStatus('Saving');
+  try {
+    const savedPoints = await upsertSupabasePoints([point]);
+    const synced = normalizePoint(savedPoints[0]);
+    points = points.map(item => item.id === synced.id ? synced : item);
+    saveLocal();
+    setSyncStatus('Online');
+  } catch (error) {
+    console.warn('NOCTIS Supabase save failed. Change stayed in local cache.', error);
+    setSyncStatus('Local');
+  }
+}
+
+async function deleteRemotePoint(id) {
+  saveLocal();
+  setSyncStatus('Deleting');
+  try {
+    await supabaseRequest(`light_points?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    setSyncStatus('Online');
+  } catch (error) {
+    console.warn('NOCTIS Supabase delete failed. Local cache was updated.', error);
+    setSyncStatus('Local');
+  }
 }
 
 function markerHtml(point) {
@@ -244,7 +355,7 @@ document.getElementById('favoriteBtn').onclick = () => {
   const point = points.find(item => item.id === currentId);
   if (!point) return;
   point.favorite = !point.favorite;
-  saveLocal();
+  savePoint(point);
   openModal(currentId);
   renderMarkers();
 };
@@ -262,7 +373,7 @@ document.getElementById('saveBtn').onclick = () => {
   point.intensity = Number(document.getElementById('modalIntensity').value);
   point.note = document.getElementById('modalNote').value.trim();
   point.analysis = document.getElementById('modalAnalysis').value.trim();
-  saveLocal();
+  savePoint(point);
   renderMarkers();
   openModal(currentId);
 };
@@ -270,11 +381,13 @@ document.getElementById('saveBtn').onclick = () => {
 document.getElementById('deleteBtn').onclick = () => {
   if (!currentId) return;
   const point = points.find(item => item.id === currentId);
+  if (!point) return;
   const ok = confirm(`Delete this photo point?\n${point ? point.title : ''}`);
   if (!ok) return;
   points = points.filter(item => item.id !== currentId);
   currentId = null;
   saveLocal();
+  deleteRemotePoint(point.id);
   closeModal();
   renderMarkers();
 };
@@ -287,7 +400,7 @@ document.getElementById('imageInput').onchange = event => {
     const point = points.find(item => item.id === currentId);
     if (!point) return;
     point.img = reader.result;
-    saveLocal();
+    savePoint(point);
     openModal(currentId);
     renderMarkers();
   };
@@ -321,13 +434,14 @@ map.on('click', event => {
   map.getContainer().style.cursor = '';
   document.getElementById('addPointBtn').textContent = 'Add Point';
   saveLocal();
+  savePoint(points.find(point => point.id === id));
   renderMarkers();
   openModal(id);
 });
 
 document.getElementById('clearLocalBtn').onclick = () => {
   localStorage.removeItem(storageKey);
-  points = defaultPoints.map(normalizePoint);
+  loadSupabasePoints();
   renderMarkers();
 };
 
@@ -365,3 +479,4 @@ document.querySelectorAll('.map-topbar button').forEach(button => {
 });
 
 renderMarkers();
+loadSupabasePoints();

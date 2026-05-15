@@ -447,6 +447,10 @@ select {
   text-transform: uppercase;
 }
 
+.toolbox-title b {
+  font-weight: 400;
+}
+
 .search-wrap {
   display: grid;
   gap: 8px;
