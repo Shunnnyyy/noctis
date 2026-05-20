@@ -7,6 +7,7 @@ const defaultPoints = [
     area: 'commercial',
     condition: 'Over-lit',
     time: '10:42 PM',
+    lux: 96,
     intensity: 88,
     favorite: false,
     img: '',
@@ -21,6 +22,7 @@ const defaultPoints = [
     area: 'commercial',
     condition: 'Mixed',
     time: '9:18 PM',
+    lux: 62,
     intensity: 68,
     favorite: false,
     img: '',
@@ -35,6 +37,7 @@ const defaultPoints = [
     area: 'commercial',
     condition: 'Balanced',
     time: '11:05 PM',
+    lux: 48,
     intensity: 58,
     favorite: true,
     img: '',
@@ -49,6 +52,7 @@ const defaultPoints = [
     area: 'residential',
     condition: 'Dim',
     time: '10:12 PM',
+    lux: 18,
     intensity: 34,
     favorite: false,
     img: '',
@@ -78,9 +82,11 @@ const layer = L.layerGroup().addTo(map);
 
 function normalizePoint(point) {
   const intensity = Number(point.intensity);
+  const lux = Number(point.lux);
   return {
     ...point,
     intensity: Number.isFinite(intensity) ? intensity : sizeToIntensity(point.size),
+    lux: Number.isFinite(lux) ? lux : '',
     favorite: Boolean(point.favorite)
   };
 }
@@ -158,7 +164,11 @@ async function loadSupabasePoints() {
   setSyncStatus('Syncing');
   try {
     const remotePoints = await supabaseRequest(`light_points?select=${tableColumns}&order=created_at.asc`);
-    points = remotePoints.map(normalizePoint);
+    const localById = new Map((saved || []).map(point => [point.id, normalizePoint(point)]));
+    points = remotePoints.map(point => normalizePoint({
+      ...point,
+      lux: point.lux ?? localById.get(point.id)?.lux ?? ''
+    }));
 
     if (saved && saved.length) {
       await syncLocalDrafts(saved.map(normalizePoint));
@@ -181,7 +191,11 @@ async function syncLocalDrafts(localPoints) {
 
   const synced = await upsertSupabasePoints(drafts);
   const merged = new Map(points.map(point => [point.id, point]));
-  synced.forEach(point => merged.set(point.id, normalizePoint(point)));
+  const draftById = new Map(drafts.map(point => [point.id, point]));
+  synced.forEach(point => merged.set(point.id, normalizePoint({
+    ...point,
+    lux: draftById.get(point.id)?.lux ?? ''
+  })));
   points = Array.from(merged.values());
 }
 
@@ -198,7 +212,7 @@ async function savePoint(point) {
   setSyncStatus('Saving');
   try {
     const savedPoints = await upsertSupabasePoints([point]);
-    const synced = normalizePoint(savedPoints[0]);
+    const synced = normalizePoint({ ...savedPoints[0], lux: point.lux ?? '' });
     points = points.map(item => item.id === synced.id ? synced : item);
     saveLocal();
     setSyncStatus('Online');
@@ -228,7 +242,7 @@ function markerHtml(point) {
 
 function pointMatchesSearch(point) {
   if (!searchTerm) return true;
-  const body = [point.title, point.area, point.condition, point.time, point.note, point.analysis].join(' ').toLowerCase();
+  const body = [point.title, point.area, point.condition, point.time, point.lux, point.note, point.analysis].join(' ').toLowerCase();
   return body.includes(searchTerm);
 }
 
@@ -275,7 +289,7 @@ function renderArchive() {
       <img src="${point.img || placeholder(point.title)}" alt="">
       <div>
         <h3>${escapeHtml(point.title)}</h3>
-        <p>${escapeHtml(point.area)} / ${escapeHtml(point.condition)} / ${point.intensity}%</p>
+        <p>${escapeHtml(point.area)} / ${escapeHtml(point.condition)} / ${point.intensity}%${point.lux !== '' ? ` / ${point.lux} lux` : ''}</p>
       </div>
     `;
     div.onclick = () => {
@@ -305,8 +319,9 @@ function renderSummary() {
   const avg = Math.round(shown.reduce((sum, point) => sum + point.intensity, 0) / shown.length);
   const bright = shown.filter(point => point.intensity >= 70).length;
   const favorites = shown.filter(point => point.favorite).length;
+  const luxSamples = shown.filter(point => point.lux !== '').length;
   averageIntensity.textContent = `${avg}%`;
-  analysisSummary.textContent = `${bright} strong light area${bright === 1 ? '' : 's'} and ${favorites} saved sample${favorites === 1 ? '' : 's'} in the current view.`;
+  analysisSummary.textContent = `${bright} strong light area${bright === 1 ? '' : 's'}, ${luxSamples} lux-tagged sample${luxSamples === 1 ? '' : 's'}, and ${favorites} saved sample${favorites === 1 ? '' : 's'} in the current view.`;
 }
 
 function autoResizeTitle() {
@@ -331,6 +346,7 @@ function openModal(id) {
   autoResizeTitle();
   document.getElementById('modalLocation').textContent = `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`;
   document.getElementById('modalTimeInput').value = point.time || '';
+  document.getElementById('modalLuxInput').value = point.lux ?? '';
   document.getElementById('modalAreaInput').value = point.area;
   document.getElementById('modalConditionInput').value = point.condition;
   document.getElementById('modalIntensity').value = point.intensity;
@@ -368,6 +384,7 @@ document.getElementById('saveBtn').onclick = () => {
   if (!point) return;
   point.title = document.getElementById('modalTitle').value.trim() || 'Untitled Light Sample';
   point.time = document.getElementById('modalTimeInput').value.trim();
+  point.lux = document.getElementById('modalLuxInput').value === '' ? '' : Number(document.getElementById('modalLuxInput').value);
   point.area = document.getElementById('modalAreaInput').value;
   point.condition = document.getElementById('modalConditionInput').value;
   point.intensity = Number(document.getElementById('modalIntensity').value);
@@ -424,6 +441,7 @@ map.on('click', event => {
     area: 'commercial',
     condition: 'Unknown',
     time: '10:00 PM',
+    lux: '',
     intensity: 55,
     favorite: false,
     img: '',
