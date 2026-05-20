@@ -6,8 +6,11 @@ const defaultPoints = [
     lng: -79.3832,
     area: 'commercial',
     condition: 'Over-lit',
+    date: '',
     time: '10:42 PM',
     lux: 96,
+    activity: 'High',
+    weather: 'Clear / dry',
     intensity: 88,
     favorite: false,
     img: '',
@@ -21,8 +24,11 @@ const defaultPoints = [
     lng: -79.3818,
     area: 'commercial',
     condition: 'Mixed',
+    date: '',
     time: '9:18 PM',
     lux: 62,
+    activity: 'Medium',
+    weather: 'Waterfront reflections',
     intensity: 68,
     favorite: false,
     img: '',
@@ -36,8 +42,11 @@ const defaultPoints = [
     lng: -79.3892,
     area: 'commercial',
     condition: 'Balanced',
+    date: '',
     time: '11:05 PM',
     lux: 48,
+    activity: 'Medium',
+    weather: 'Clear / dry',
     intensity: 58,
     favorite: true,
     img: '',
@@ -51,8 +60,11 @@ const defaultPoints = [
     lng: -79.4012,
     area: 'residential',
     condition: 'Dim',
+    date: '',
     time: '10:12 PM',
     lux: 18,
+    activity: 'Low',
+    weather: 'Clear / dry',
     intensity: 34,
     favorite: false,
     img: '',
@@ -65,6 +77,8 @@ const storageKey = 'noctis_points';
 const supabaseUrl = 'https://szmcjrgtecwzxvsszeib.supabase.co';
 const supabaseKey = 'sb_publishable_glEsWFXGRqG1c4OU51YlyA_uh7_fojn';
 const tableColumns = 'id,title,lat,lng,area,condition,time,intensity,favorite,img,note,analysis,created_at,updated_at';
+const metaStart = '[NOCTIS_FIELD_META]';
+const metaEnd = '[/NOCTIS_FIELD_META]';
 const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
 let points = (saved || defaultPoints).map(normalizePoint);
 let currentId = null;
@@ -82,9 +96,15 @@ const layer = L.layerGroup().addTo(map);
 
 function normalizePoint(point) {
   const intensity = Number(point.intensity);
-  const lux = Number(point.lux);
+  const parsedMeta = parseFieldMeta(point.analysis);
+  const cleanAnalysis = stripFieldMeta(point.analysis || '');
+  const lux = Number(point.lux ?? parsedMeta.lux);
   return {
     ...point,
+    date: point.date ?? parsedMeta.date ?? '',
+    activity: point.activity ?? parsedMeta.activity ?? 'Unknown',
+    weather: point.weather ?? parsedMeta.weather ?? '',
+    analysis: cleanAnalysis,
     intensity: Number.isFinite(intensity) ? intensity : sizeToIntensity(point.size),
     lux: Number.isFinite(lux) ? lux : '',
     favorite: Boolean(point.favorite)
@@ -114,6 +134,37 @@ function escapeHtml(value) {
   })[char]);
 }
 
+function stripFieldMeta(value) {
+  const text = String(value || '');
+  const start = text.indexOf(metaStart);
+  const end = text.indexOf(metaEnd);
+  if (start === -1 || end === -1 || end < start) return text;
+  return `${text.slice(0, start)}${text.slice(end + metaEnd.length)}`.trim();
+}
+
+function parseFieldMeta(value) {
+  const text = String(value || '');
+  const start = text.indexOf(metaStart);
+  const end = text.indexOf(metaEnd);
+  if (start === -1 || end === -1 || end < start) return {};
+  try {
+    return JSON.parse(text.slice(start + metaStart.length, end).trim());
+  } catch {
+    return {};
+  }
+}
+
+function analysisWithFieldMeta(analysis, point) {
+  const clean = stripFieldMeta(analysis);
+  const meta = {
+    date: point.date || '',
+    lux: point.lux === '' ? '' : Number(point.lux),
+    activity: point.activity || 'Unknown',
+    weather: point.weather || ''
+  };
+  return `${clean}\n\n${metaStart}\n${JSON.stringify(meta)}\n${metaEnd}`.trim();
+}
+
 function saveLocal() {
   localStorage.setItem(storageKey, JSON.stringify(points));
 }
@@ -136,7 +187,7 @@ function pointForDatabase(point) {
     favorite: Boolean(point.favorite),
     img: point.img || '',
     note: point.note || '',
-    analysis: point.analysis || ''
+    analysis: analysisWithFieldMeta(point.analysis || '', point)
   };
 }
 
@@ -165,10 +216,17 @@ async function loadSupabasePoints() {
   try {
     const remotePoints = await supabaseRequest(`light_points?select=${tableColumns}&order=created_at.asc`);
     const localById = new Map((saved || []).map(point => [point.id, normalizePoint(point)]));
-    points = remotePoints.map(point => normalizePoint({
-      ...point,
-      lux: point.lux ?? localById.get(point.id)?.lux ?? ''
-    }));
+    points = remotePoints.map(point => {
+      const local = localById.get(point.id) || {};
+      const parsedMeta = parseFieldMeta(point.analysis);
+      return normalizePoint({
+        ...point,
+        date: parsedMeta.date ?? local.date ?? '',
+        lux: parsedMeta.lux ?? local.lux ?? '',
+        activity: parsedMeta.activity ?? local.activity ?? 'Unknown',
+        weather: parsedMeta.weather ?? local.weather ?? ''
+      });
+    });
 
     if (saved && saved.length) {
       await syncLocalDrafts(saved.map(normalizePoint));
@@ -289,7 +347,7 @@ function renderArchive() {
       <img src="${point.img || placeholder(point.title)}" alt="">
       <div>
         <h3>${escapeHtml(point.title)}</h3>
-        <p>${escapeHtml(point.area)} / ${escapeHtml(point.condition)} / ${point.intensity}%${point.lux !== '' ? ` / ${point.lux} lux` : ''}</p>
+        <p>${escapeHtml(point.area)} / ${escapeHtml(point.activity || 'Unknown')} activity / ${point.intensity}%${point.lux !== '' ? ` / ${point.lux} lux` : ''}</p>
       </div>
     `;
     div.onclick = () => {
@@ -345,8 +403,11 @@ function openModal(id) {
   document.getElementById('modalTitle').value = point.title;
   autoResizeTitle();
   document.getElementById('modalLocation').textContent = `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`;
+  document.getElementById('modalDateInput').value = point.date || '';
   document.getElementById('modalTimeInput').value = point.time || '';
   document.getElementById('modalLuxInput').value = point.lux ?? '';
+  document.getElementById('modalActivityInput').value = point.activity || 'Unknown';
+  document.getElementById('modalWeatherInput').value = point.weather || '';
   document.getElementById('modalAreaInput').value = point.area;
   document.getElementById('modalConditionInput').value = point.condition;
   document.getElementById('modalIntensity').value = point.intensity;
@@ -383,8 +444,11 @@ document.getElementById('saveBtn').onclick = () => {
   const point = points.find(item => item.id === currentId);
   if (!point) return;
   point.title = document.getElementById('modalTitle').value.trim() || 'Untitled Light Sample';
+  point.date = document.getElementById('modalDateInput').value;
   point.time = document.getElementById('modalTimeInput').value.trim();
   point.lux = document.getElementById('modalLuxInput').value === '' ? '' : Number(document.getElementById('modalLuxInput').value);
+  point.activity = document.getElementById('modalActivityInput').value;
+  point.weather = document.getElementById('modalWeatherInput').value.trim();
   point.area = document.getElementById('modalAreaInput').value;
   point.condition = document.getElementById('modalConditionInput').value;
   point.intensity = Number(document.getElementById('modalIntensity').value);
@@ -440,8 +504,11 @@ map.on('click', event => {
     lng: event.latlng.lng,
     area: 'commercial',
     condition: 'Unknown',
+    date: new Date().toISOString().slice(0, 10),
     time: '10:00 PM',
     lux: '',
+    activity: 'Unknown',
+    weather: '',
     intensity: 55,
     favorite: false,
     img: '',

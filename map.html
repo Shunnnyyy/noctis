@@ -23,7 +23,7 @@
 
   <section class="map-toolbox" aria-label="Map controls">
     <div class="toolbox-title">
-      <p>Photo Anchor System</p>
+      <p>Field Studio</p>
       <span><b id="pointCount">0 points</b> / <b id="syncStatus">Syncing</b></span>
     </div>
     <label class="search-wrap" for="searchInput">
@@ -75,8 +75,19 @@
         <textarea id="modalTitle" class="modal-title-input" spellcheck="false"></textarea>
         <div class="meta-grid">
           <div><b>Location</b><span id="modalLocation"></span></div>
+          <div><b>Date</b><input id="modalDateInput" class="meta-input" type="date" /></div>
           <div><b>Time</b><input id="modalTimeInput" class="meta-input" type="text" placeholder="e.g. 10:42 PM" /></div>
           <div><b>Lux</b><input id="modalLuxInput" class="meta-input" type="number" min="0" step="1" placeholder="optional phone reading" /></div>
+          <div>
+            <b>Activity</b>
+            <select id="modalActivityInput" class="meta-input">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+              <option>Unknown</option>
+            </select>
+          </div>
+          <div><b>Weather</b><input id="modalWeatherInput" class="meta-input" type="text" placeholder="clear, cloudy, wet..." /></div>
           <div>
             <b>Area</b>
             <select id="modalAreaInput" class="meta-input">
