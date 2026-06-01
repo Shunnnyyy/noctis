@@ -364,6 +364,7 @@ function renderSummary() {
   const filterLabel = document.getElementById('filterLabel');
   const averageIntensity = document.getElementById('averageIntensity');
   const analysisSummary = document.getElementById('analysisSummary');
+  const actionSummary = document.getElementById('actionSummary');
 
   pointCount.textContent = `${shown.length} point${shown.length === 1 ? '' : 's'}`;
   filterLabel.textContent = activeFilter === 'all' ? 'All' : activeFilter;
@@ -371,6 +372,7 @@ function renderSummary() {
   if (!shown.length) {
     averageIntensity.textContent = '0%';
     analysisSummary.textContent = 'No points match the current view.';
+    if (actionSummary) actionSummary.textContent = 'Add one lux-tagged point.';
     return;
   }
 
@@ -378,8 +380,20 @@ function renderSummary() {
   const bright = shown.filter(point => point.intensity >= 70).length;
   const favorites = shown.filter(point => point.favorite).length;
   const luxSamples = shown.filter(point => point.lux !== '').length;
+  const lowActivityBright = shown.filter(point => point.intensity >= 70 && ['Low', 'Unknown'].includes(point.activity || 'Unknown')).length;
   averageIntensity.textContent = `${avg}%`;
   analysisSummary.textContent = `${bright} strong light area${bright === 1 ? '' : 's'}, ${luxSamples} lux-tagged sample${luxSamples === 1 ? '' : 's'}, and ${favorites} saved sample${favorites === 1 ? '' : 's'} in the current view.`;
+  if (actionSummary) {
+    if (lowActivityBright > 0) {
+      actionSummary.textContent = 'Flag bright low-activity points for dimming or scheduling.';
+    } else if (luxSamples < shown.length) {
+      actionSummary.textContent = 'Complete missing lux readings before comparing zones.';
+    } else if (avg >= 70) {
+      actionSummary.textContent = 'Compare strong-light zones with activity and glare notes.';
+    } else {
+      actionSummary.textContent = 'Keep collecting: current points look balanced or mixed.';
+    }
+  }
 }
 
 function autoResizeTitle() {

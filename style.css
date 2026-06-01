@@ -26,6 +26,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: var(--bg);
   color: var(--ink);
+  line-height: 1.6;
 }
 
 a {
@@ -283,7 +284,7 @@ select {
   max-width: 620px;
   color: var(--muted);
   font-size: 15px;
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
 .home-copy .intro-main {
@@ -385,13 +386,14 @@ select {
 .home-metrics,
 .map-toolbox,
 .archive-panel,
-.insight-panel {
+.insight-panel,
+.action-panel {
   position: fixed;
   z-index: 8;
   border: 1px solid var(--line);
   background: var(--panel);
   backdrop-filter: blur(18px);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.24);
   animation: noctis-rise 620ms ease both;
 }
 
@@ -477,7 +479,7 @@ select {
 .home-metrics div:hover {
   background: rgba(244, 241, 234, 0.08);
   box-shadow: inset 0 0 0 1px rgba(216, 255, 106, 0.2);
-  transform: translateY(-8px);
+  transform: translateY(-4px);
 }
 
 .home-metrics div:last-child {
@@ -680,7 +682,7 @@ select {
 .archive-item:hover {
   background-position: 0 0;
   border-color: rgba(216, 255, 106, 0.24);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .archive-item:hover h3 {
@@ -730,7 +732,15 @@ select {
   padding: 18px;
 }
 
-.insight-panel span {
+.action-panel {
+  left: 410px;
+  bottom: 22px;
+  width: min(430px, calc(100vw - 790px));
+  padding: 18px;
+}
+
+.insight-panel span,
+.action-panel span {
   color: var(--muted);
   font-size: 11px;
   letter-spacing: 0.14em;
@@ -745,10 +755,43 @@ select {
   line-height: 1;
 }
 
-.insight-panel p {
+.action-panel strong {
+  display: block;
+  margin: 10px 0 8px;
+  color: var(--accent);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.insight-panel p,
+.action-panel p {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.action-panel div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.action-panel a {
+  border: 1px solid var(--line);
+  padding: 9px 10px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.action-panel a:hover {
+  background: var(--accent);
+  color: #050505;
+  transform: translateY(-2px);
 }
 
 .photo-marker {
@@ -829,7 +872,7 @@ select {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.28);
   background: var(--panel-strong);
-  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.78);
+  box-shadow: 0 22px 84px rgba(0, 0, 0, 0.70);
   transform: translate(-50%, -50%);
   animation: noctis-modal 420ms cubic-bezier(0.2, 1, 0.3, 1) both;
 }
@@ -933,7 +976,7 @@ select {
   background: transparent;
   font-size: 30px;
   font-weight: 900;
-  line-height: 1.08;
+  line-height: 1.14;
   resize: none;
   word-break: break-word;
 }
@@ -1066,7 +1109,8 @@ select {
 @media (max-width: 1120px) {
   .home-data-panel,
   .home-metrics,
-  .insight-panel {
+  .insight-panel,
+  .action-panel {
     display: none;
   }
 
