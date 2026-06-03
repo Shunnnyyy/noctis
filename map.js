@@ -85,6 +85,8 @@ let currentId = null;
 let adding = false;
 let activeFilter = 'all';
 let searchTerm = '';
+let latestAssistantText = '';
+let latestAssistantPrompt = '';
 
 const map = L.map('map', { zoomControl: true }).setView([43.6532, -79.3832], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -406,6 +408,132 @@ function updateIntensityLabel() {
   document.getElementById('intensityValue').textContent = `${document.getElementById('modalIntensity').value}%`;
 }
 
+function getDraftPointFromModal() {
+  const point = points.find(item => item.id === currentId);
+  if (!point) return null;
+  return {
+    ...point,
+    title: document.getElementById('modalTitle').value.trim() || point.title || 'Untitled Light Sample',
+    date: document.getElementById('modalDateInput').value,
+    time: document.getElementById('modalTimeInput').value.trim(),
+    lux: document.getElementById('modalLuxInput').value === '' ? '' : Number(document.getElementById('modalLuxInput').value),
+    activity: document.getElementById('modalActivityInput').value,
+    weather: document.getElementById('modalWeatherInput').value.trim(),
+    area: document.getElementById('modalAreaInput').value,
+    condition: document.getElementById('modalConditionInput').value,
+    intensity: Number(document.getElementById('modalIntensity').value),
+    note: document.getElementById('modalNote').value.trim(),
+    analysis: document.getElementById('modalAnalysis').value.trim()
+  };
+}
+
+function getLuxBand(lux) {
+  if (lux === '' || !Number.isFinite(Number(lux))) return 'unknown';
+  if (Number(lux) < 20) return 'low';
+  if (Number(lux) < 55) return 'moderate';
+  if (Number(lux) < 90) return 'bright';
+  return 'very bright';
+}
+
+function getAssistantProfile(point) {
+  const luxBand = getLuxBand(point.lux);
+  const activity = point.activity || 'Unknown';
+  const condition = point.condition || 'Unknown';
+  const intensity = Number(point.intensity) || 0;
+  const area = point.area || 'unknown area';
+  const isLowActivity = ['Low', 'Unknown'].includes(activity);
+  const isBright = intensity >= 70 || ['bright', 'very bright'].includes(luxBand);
+  const isDim = intensity <= 40 || luxBand === 'low';
+
+  let issue = 'The lighting looks worth comparing with nearby streets before making a conclusion.';
+  let action = 'Revisit the same location at another time and collect one more lux reading for comparison.';
+  let nextData = 'Record photo direction, pedestrian/vehicle activity, exact lux, weather, and whether glare is visible.';
+
+  if (isBright && isLowActivity) {
+    issue = 'Brightness may be higher than the visible activity level, especially if the street is quiet or mostly empty.';
+    action = 'Flag this point for a dimming, scheduling, or shielding test in Lumen Shift.';
+    nextData = 'Collect a second lux reading after 10 PM and note whether pedestrians, cars, or businesses are still active.';
+  } else if (isBright && activity === 'High') {
+    issue = 'The high brightness may match activity, but glare and light spill should still be checked.';
+    action = 'Compare direct brightness with reflected brightness from windows, signs, and wet surfaces.';
+    nextData = 'Record where the strongest light source comes from: street lamp, sign, vehicle, window, or reflection.';
+  } else if (isDim && activity === 'High') {
+    issue = 'The space may feel under-lit for the observed activity, so comfort and visibility should be checked.';
+    action = 'Revisit with a photo from the walking path and compare whether important surfaces remain readable.';
+    nextData = 'Add a safety/visibility note, especially near crossings, entrances, or stairs.';
+  } else if (condition === 'Balanced') {
+    issue = 'This point can work as a comparison sample because brightness and activity appear relatively aligned.';
+    action = 'Use it as a baseline when comparing over-lit or dimmer locations.';
+    nextData = 'Collect one similar point nearby to see whether this balance is local or repeated.';
+  }
+
+  return { luxBand, issue, action, nextData, area };
+}
+
+function buildAssistantResult(point) {
+  const profile = getAssistantProfile(point);
+  const luxText = point.lux === '' ? 'no lux reading yet' : `${point.lux} lux`;
+  const observation = `${point.title} is a ${profile.area} point recorded around ${point.time || 'an unknown time'} with ${luxText}, ${point.activity || 'Unknown'} activity, and ${point.intensity}% visual intensity.`;
+  const caption = `This field note uses photography and a simple lux reading to ask whether the visible brightness fits the actual use of the place.`;
+  const reflection = `This point helps connect a visual impression with a practical question: what should stay bright, what could be softer, and what extra data would make the judgment stronger?`;
+
+  return [
+    ['Observation Summary', observation],
+    ['Possible Issue', profile.issue],
+    ['Suggested Action', profile.action],
+    ['Next Data to Collect', profile.nextData],
+    ['Portfolio Caption', caption],
+    ['Short Reflection', reflection]
+  ];
+}
+
+function buildChatGptPrompt(point) {
+  const luxText = point.lux === '' ? 'not recorded yet' : `${point.lux} lux`;
+  return `Act as a supportive urban systems and sustainability mentor. Help me analyze one night-light field observation for a Grade 10 personal project.
+
+Project context:
+I am building NOCTIS, a night photography and urban light archive. Each point records a photo, location, time, lux, activity level, weather, area type, condition, and observation notes. I want the analysis to sound curiosity-led, not like I made it only for engineering admissions.
+
+Field point:
+Title: ${point.title}
+Area: ${point.area}
+Condition: ${point.condition}
+Time: ${point.time || 'unknown'}
+Date: ${point.date || 'unknown'}
+Lux: ${luxText}
+Activity: ${point.activity || 'Unknown'}
+Weather: ${point.weather || 'unknown'}
+Visual intensity: ${point.intensity}%
+Observation note: ${point.note || 'none yet'}
+Current analysis: ${point.analysis || 'none yet'}
+
+Please write:
+1. a 2-sentence observation summary;
+2. one possible lighting mismatch or urban question;
+3. one practical next step I can actually do;
+4. one limitation of the data;
+5. a short portfolio caption in clear Grade 10 ESL English.`;
+}
+
+function renderAssistantResult(rows) {
+  const output = document.getElementById('assistantOutput');
+  output.innerHTML = rows.map(([label, value]) => `
+    <article>
+      <b>${escapeHtml(label)}</b>
+      <p>${escapeHtml(value)}</p>
+    </article>
+  `).join('');
+}
+
+function analyzeCurrentPoint() {
+  const point = getDraftPointFromModal();
+  if (!point) return;
+  const rows = buildAssistantResult(point);
+  latestAssistantText = rows.map(([label, value]) => `${label}: ${value}`).join('\n\n');
+  latestAssistantPrompt = buildChatGptPrompt(point);
+  renderAssistantResult(rows);
+}
+
 function openModal(id) {
   currentId = id;
   const point = points.find(item => item.id === id);
@@ -429,6 +557,9 @@ function openModal(id) {
   document.getElementById('modalNote').value = point.note;
   document.getElementById('modalAnalysis').value = point.analysis;
   document.getElementById('favoriteBtn').textContent = point.favorite ? 'Saved' : 'Save';
+  latestAssistantText = '';
+  latestAssistantPrompt = buildChatGptPrompt(point);
+  document.getElementById('assistantOutput').innerHTML = '<p>Select Analyze to turn this point into a short observation, possible issue, and next step.</p>';
 }
 
 function closeModal() {
@@ -453,6 +584,31 @@ document.getElementById('favoriteBtn').onclick = () => {
 
 document.getElementById('modalTitle').addEventListener('input', autoResizeTitle);
 document.getElementById('modalIntensity').addEventListener('input', updateIntensityLabel);
+
+document.getElementById('analyzePointBtn').onclick = analyzeCurrentPoint;
+
+document.getElementById('copyPromptBtn').onclick = async () => {
+  const point = getDraftPointFromModal();
+  if (!point) return;
+  latestAssistantPrompt = buildChatGptPrompt(point);
+  try {
+    await navigator.clipboard.writeText(latestAssistantPrompt);
+    document.getElementById('copyPromptBtn').textContent = 'Prompt Copied';
+  } catch {
+    document.getElementById('copyPromptBtn').textContent = 'Copy Failed';
+  }
+  setTimeout(() => {
+    document.getElementById('copyPromptBtn').textContent = 'Copy ChatGPT Prompt';
+  }, 1400);
+};
+
+document.getElementById('useAssistantBtn').onclick = () => {
+  if (!latestAssistantText) analyzeCurrentPoint();
+  if (!latestAssistantText) return;
+  const analysis = document.getElementById('modalAnalysis');
+  const divider = analysis.value.trim() ? '\n\n--- Assistant field note ---\n' : '';
+  analysis.value = `${analysis.value.trim()}${divider}${latestAssistantText}`.trim();
+};
 
 document.getElementById('saveBtn').onclick = () => {
   const point = points.find(item => item.id === currentId);

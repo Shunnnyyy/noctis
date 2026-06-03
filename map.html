@@ -122,6 +122,22 @@
         <textarea id="modalNote"></textarea>
         <label for="modalAnalysis">Light Analysis</label>
         <textarea id="modalAnalysis"></textarea>
+        <section class="ai-assistant" aria-labelledby="assistantTitle">
+          <div class="assistant-head">
+            <div>
+              <span>Work with ChatGPT</span>
+              <h3 id="assistantTitle">Field Note Assistant</h3>
+            </div>
+            <button id="analyzePointBtn" type="button">Analyze</button>
+          </div>
+          <div class="assistant-output" id="assistantOutput">
+            <p>Select Analyze to turn this point into a short observation, possible issue, and next step.</p>
+          </div>
+          <div class="assistant-actions">
+            <button id="copyPromptBtn" type="button">Copy ChatGPT Prompt</button>
+            <button id="useAssistantBtn" type="button">Add to Analysis</button>
+          </div>
+        </section>
         <label for="imageInput">Upload or Replace Photo</label>
         <input id="imageInput" type="file" accept="image/*" />
         <div class="modal-actions">
