@@ -128,7 +128,15 @@
               <span>Work with ChatGPT</span>
               <h3 id="assistantTitle">Field Note Assistant</h3>
             </div>
-            <button id="analyzePointBtn" type="button">Analyze</button>
+            <div class="assistant-controls">
+              <select id="promptMode" aria-label="ChatGPT prompt mode">
+                <option value="field">Field note</option>
+                <option value="systems">Systems design</option>
+                <option value="industrial">Efficiency</option>
+                <option value="reflection">Reflection</option>
+              </select>
+              <button id="analyzePointBtn" type="button">Analyze</button>
+            </div>
           </div>
           <div class="assistant-output" id="assistantOutput">
             <p>Select Analyze to turn this point into a short observation, possible issue, and next step.</p>

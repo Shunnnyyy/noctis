@@ -470,6 +470,38 @@ function getAssistantProfile(point) {
   return { luxBand, issue, action, nextData, area };
 }
 
+function getMismatchScore(point) {
+  const lux = Number(point.lux);
+  const intensity = Number(point.intensity) || 0;
+  const activity = point.activity || 'Unknown';
+  let score = 35;
+
+  if (Number.isFinite(lux)) {
+    if (lux >= 90) score += 28;
+    else if (lux >= 55) score += 18;
+    else if (lux < 20) score -= 6;
+  }
+
+  if (intensity >= 75) score += 18;
+  if (activity === 'Low') score += 22;
+  if (activity === 'High') score -= 14;
+  if (point.condition === 'Over-lit') score += 18;
+  if (point.condition === 'Balanced') score -= 16;
+  if (point.condition === 'Dim') score -= 8;
+
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function getLensNotes(point) {
+  const score = getMismatchScore(point);
+  const luxText = point.lux === '' ? 'missing lux' : `${point.lux} lux`;
+  return [
+    ['EE lens', `Light level, control timing, and energy load are the main technical signals. This point is ${luxText} with ${point.intensity}% visual intensity.`],
+    ['SYDE lens', `The important question is whether the street, users, and feedback loop match each other, especially for ${point.activity || 'Unknown'} activity.`],
+    ['IE lens', `Priority score: ${score}/100. Use this to decide if the next action is worth time, cost, and repeated measurement.`]
+  ];
+}
+
 function buildAssistantResult(point) {
   const profile = getAssistantProfile(point);
   const luxText = point.lux === '' ? 'no lux reading yet' : `${point.lux} lux`;
@@ -482,13 +514,41 @@ function buildAssistantResult(point) {
     ['Possible Issue', profile.issue],
     ['Suggested Action', profile.action],
     ['Next Data to Collect', profile.nextData],
+    ...getLensNotes(point),
     ['Portfolio Caption', caption],
     ['Short Reflection', reflection]
   ];
 }
 
-function buildChatGptPrompt(point) {
+function buildChatGptPrompt(point, mode = 'field') {
   const luxText = point.lux === '' ? 'not recorded yet' : `${point.lux} lux`;
+  const tasks = {
+    field: `Please write:
+1. a 2-sentence observation summary;
+2. one possible lighting mismatch or urban question;
+3. one practical next step I can actually do;
+4. one limitation of the data;
+5. a short portfolio caption in clear Grade 10 ESL English.`,
+    systems: `Please analyze this as a system design problem:
+1. inputs, users, environment, and feedback loop;
+2. where the system may fail or mismatch real use;
+3. one low-cost change to test;
+4. one metric I should collect next;
+5. a short Grade 10 ESL explanation of why this is a systems problem.`,
+    industrial: `Please analyze this as an industrial efficiency problem:
+1. what resource may be wasted;
+2. what priority level this point deserves;
+3. a simple cost/time/impact tradeoff;
+4. one low-cost operational improvement;
+5. a short Grade 10 ESL note about efficiency and decision-making.`,
+    reflection: `Please help me write a short project reflection:
+1. what I noticed;
+2. what data I collected;
+3. what I learned about light, energy, and urban behavior;
+4. what I would improve next;
+5. keep it natural and curiosity-led, not too admissions-focused.`
+  };
+
   return `Act as a supportive urban systems and sustainability mentor. Help me analyze one night-light field observation for a Grade 10 personal project.
 
 Project context:
@@ -507,12 +567,7 @@ Visual intensity: ${point.intensity}%
 Observation note: ${point.note || 'none yet'}
 Current analysis: ${point.analysis || 'none yet'}
 
-Please write:
-1. a 2-sentence observation summary;
-2. one possible lighting mismatch or urban question;
-3. one practical next step I can actually do;
-4. one limitation of the data;
-5. a short portfolio caption in clear Grade 10 ESL English.`;
+${tasks[mode] || tasks.field}`;
 }
 
 function renderAssistantResult(rows) {
@@ -530,7 +585,7 @@ function analyzeCurrentPoint() {
   if (!point) return;
   const rows = buildAssistantResult(point);
   latestAssistantText = rows.map(([label, value]) => `${label}: ${value}`).join('\n\n');
-  latestAssistantPrompt = buildChatGptPrompt(point);
+  latestAssistantPrompt = buildChatGptPrompt(point, document.getElementById('promptMode')?.value);
   renderAssistantResult(rows);
 }
 
@@ -558,7 +613,7 @@ function openModal(id) {
   document.getElementById('modalAnalysis').value = point.analysis;
   document.getElementById('favoriteBtn').textContent = point.favorite ? 'Saved' : 'Save';
   latestAssistantText = '';
-  latestAssistantPrompt = buildChatGptPrompt(point);
+  latestAssistantPrompt = buildChatGptPrompt(point, document.getElementById('promptMode')?.value);
   document.getElementById('assistantOutput').innerHTML = '<p>Select Analyze to turn this point into a short observation, possible issue, and next step.</p>';
 }
 
@@ -590,7 +645,7 @@ document.getElementById('analyzePointBtn').onclick = analyzeCurrentPoint;
 document.getElementById('copyPromptBtn').onclick = async () => {
   const point = getDraftPointFromModal();
   if (!point) return;
-  latestAssistantPrompt = buildChatGptPrompt(point);
+  latestAssistantPrompt = buildChatGptPrompt(point, document.getElementById('promptMode')?.value);
   try {
     await navigator.clipboard.writeText(latestAssistantPrompt);
     document.getElementById('copyPromptBtn').textContent = 'Prompt Copied';
