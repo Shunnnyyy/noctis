@@ -496,9 +496,9 @@ function getLensNotes(point) {
   const score = getMismatchScore(point);
   const luxText = point.lux === '' ? 'missing lux' : `${point.lux} lux`;
   return [
-    ['EE lens', `Light level, control timing, and energy load are the main technical signals. This point is ${luxText} with ${point.intensity}% visual intensity.`],
-    ['SYDE lens', `The important question is whether the street, users, and feedback loop match each other, especially for ${point.activity || 'Unknown'} activity.`],
-    ['IE lens', `Priority score: ${score}/100. Use this to decide if the next action is worth time, cost, and repeated measurement.`]
+    ['Light + control', `Light level, timing, and energy load are the main technical signals. This point is ${luxText} with ${point.intensity}% visual intensity.`],
+    ['People + place', `The important question is whether the street, users, and feedback loop match each other, especially for ${point.activity || 'Unknown'} activity.`],
+    ['Priority', `Priority score: ${score}/100. Use this to decide if the next action is worth time, cost, and repeated measurement.`]
   ];
 }
 
@@ -529,13 +529,13 @@ function buildChatGptPrompt(point, mode = 'field') {
 3. one practical next step I can actually do;
 4. one limitation of the data;
 5. a short portfolio caption in clear Grade 10 ESL English.`,
-    systems: `Please analyze this as a system design problem:
+    systems: `Please analyze this as a connected place-and-people problem:
 1. inputs, users, environment, and feedback loop;
 2. where the system may fail or mismatch real use;
 3. one low-cost change to test;
 4. one metric I should collect next;
-5. a short Grade 10 ESL explanation of why this is a systems problem.`,
-    industrial: `Please analyze this as an industrial efficiency problem:
+5. a short Grade 10 ESL explanation of why the parts affect each other.`,
+    efficiency: `Please analyze this as an efficiency and priority problem:
 1. what resource may be wasted;
 2. what priority level this point deserves;
 3. a simple cost/time/impact tradeoff;
@@ -546,13 +546,13 @@ function buildChatGptPrompt(point, mode = 'field') {
 2. what data I collected;
 3. what I learned about light, energy, and urban behavior;
 4. what I would improve next;
-5. keep it natural and curiosity-led, not too admissions-focused.`
+5. keep it natural and curiosity-led, not too polished or forced.`
   };
 
   return `Act as a supportive urban systems and sustainability mentor. Help me analyze one night-light field observation for a Grade 10 personal project.
 
 Project context:
-I am building NOCTIS, a night photography and urban light archive. Each point records a photo, location, time, lux, activity level, weather, area type, condition, and observation notes. I want the analysis to sound curiosity-led, not like I made it only for engineering admissions.
+I am building NOCTIS, a night photography and urban light archive. Each point records a photo, location, time, lux, activity level, weather, area type, condition, and observation notes. I want the analysis to sound curiosity-led, not like a project made only to impress someone.
 
 Field point:
 Title: ${point.title}
