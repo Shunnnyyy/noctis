@@ -592,8 +592,19 @@ select {
 }
 
 .workflow-strip i {
+  position: relative;
+  overflow: hidden;
   height: 1px;
   background: rgba(216, 255, 106, 0.36);
+}
+
+.workflow-strip i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  transform: translateX(-100%);
+  animation: noctis-workflow-current 4.2s ease-in-out infinite;
 }
 
 .search-wrap {
@@ -825,6 +836,7 @@ select {
   background: var(--ink);
   box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.12), 0 0 22px rgba(255, 255, 255, 0.35);
   transform: translate(-50%, -50%);
+  animation: noctis-point-breathe 3.6s ease-in-out infinite;
   transition: transform 0.2s ease;
 }
 
@@ -1250,6 +1262,35 @@ select {
   }
   100% {
     transform: translate(-50%, -50%) scale(1.65);
+  }
+}
+
+@keyframes noctis-workflow-current {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateX(-100%);
+  }
+
+  50% {
+    opacity: 0.75;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes noctis-point-breathe {
+  0%, 100% {
+    filter: none;
+  }
+
+  50% {
+    filter: drop-shadow(0 0 12px rgba(216, 255, 106, 0.32));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-strip i::after,
+  .photo-marker {
+    animation: none;
   }
 }
 
