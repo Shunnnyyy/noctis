@@ -21,12 +21,28 @@
 
 html,
 body {
+  position: relative;
   width: 100%;
   min-height: 100%;
   font-family: Arial, Helvetica, sans-serif;
   background: var(--bg);
   color: var(--ink);
   line-height: 1.6;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 68% 28%, rgba(216, 255, 106, 0.13), transparent 18%),
+    radial-gradient(ellipse at 22% 72%, rgba(117, 240, 255, 0.1), transparent 22%),
+    repeating-conic-gradient(from 28deg at 50% 50%, rgba(244, 241, 234, 0.03) 0deg 1deg, transparent 1deg 8deg);
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  animation: noctis-field-bend 22s ease-in-out infinite alternate;
 }
 
 a {
@@ -278,6 +294,7 @@ select {
   font-weight: 900;
   text-transform: uppercase;
   text-shadow: 0 0 22px rgba(255, 255, 255, 0.09);
+  animation: noctis-title-float 8s ease-in-out infinite alternate;
 }
 
 .home-copy p {
@@ -390,11 +407,34 @@ select {
 .action-panel {
   position: fixed;
   z-index: 8;
+  overflow: hidden;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: rgba(6, 6, 6, 0.82);
   backdrop-filter: blur(18px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
   animation: noctis-rise 620ms ease both;
+}
+
+.home-data-panel,
+.home-metrics {
+  background: rgba(6, 6, 6, 0.9);
+}
+
+.home-data-panel::before,
+.home-metrics::before,
+.archive-panel::before,
+.insight-panel::before,
+.action-panel::before {
+  content: "";
+  position: absolute;
+  left: -45%;
+  right: -45%;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(216, 255, 106, 0.72), transparent);
+  opacity: 0.42;
+  animation: noctis-panel-current 6.8s ease-in-out infinite;
 }
 
 .home-data-panel {
@@ -827,6 +867,7 @@ select {
 }
 
 .photo-marker {
+  position: relative;
   display: grid;
   width: var(--marker-size, 28px);
   height: var(--marker-size, 28px);
@@ -838,6 +879,16 @@ select {
   transform: translate(-50%, -50%);
   animation: noctis-point-breathe 3.6s ease-in-out infinite;
   transition: transform 0.2s ease;
+}
+
+.photo-marker::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.22;
+  animation: noctis-point-orbit 4.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
 .photo-marker::after {
@@ -1287,9 +1338,65 @@ select {
   }
 }
 
+@keyframes noctis-field-bend {
+  0% {
+    transform: translate3d(-1%, 1%, 0) rotate(-1deg) scale(1);
+  }
+
+  100% {
+    transform: translate3d(1%, -1%, 0) rotate(1.5deg) scale(1.05);
+  }
+}
+
+@keyframes noctis-panel-current {
+  0%,
+  18% {
+    transform: translateX(-36%);
+  }
+
+  72%,
+  100% {
+    transform: translateX(36%);
+  }
+}
+
+@keyframes noctis-title-float {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes noctis-point-orbit {
+  0% {
+    transform: scale(0.78) rotate(0deg);
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 0.28;
+  }
+
+  100% {
+    transform: scale(1.36) rotate(180deg);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  body::before,
   .workflow-strip i::after,
-  .photo-marker {
+  .photo-marker,
+  .photo-marker::before,
+  .home-copy h1,
+  .home-data-panel::before,
+  .home-metrics::before,
+  .archive-panel::before,
+  .insight-panel::before,
+  .action-panel::before {
     animation: none;
   }
 }
