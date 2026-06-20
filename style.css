@@ -67,6 +67,15 @@ select {
   outline-color: var(--accent);
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .home-page {
   min-height: 100vh;
   overflow: hidden;
@@ -1426,6 +1435,20 @@ select {
   .archive-panel {
     max-height: 48vh;
   }
+}
+
+.system-label,
+.panel-heading,
+.home-data-panel,
+.workflow-strip,
+.search-wrap,
+.archive-head span,
+.insight-panel span,
+.action-panel span,
+.modal-kicker,
+.assistant-head span,
+.assistant-output b {
+  font-family: "IBM Plex Mono", "Courier New", monospace;
 }
 
 @media (max-width: 1240px), (max-height: 840px) {
